@@ -1,0 +1,28 @@
+# Node.js dependencies
+sakura-app/node_modules/
+sakura-app/node_modules/.bin/
+sakura-signal/node_modules/
+sakura-signal/node_modules/.bin/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+sakura-app/build/
+sakura-signal/dist/
+
+# Environment variables
+sakura-app/.env
+sakura-signal/.env
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# OS-specific files
+.DS_Store
+Thumbs.db

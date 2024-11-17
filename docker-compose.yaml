@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  # media_server:
+  #   build:
+  #     context: ./media_server
+  #   container_name: media_server
+  #   environment:
+  #     - REDIS_HOST=redis
+  #   depends_on:
+  #     - redis
+  #   ports:
+  #     - "5000:5000" # Example port for media server
+
+  signal_server:
+    build:
+      context: ./sakura-signal
+    container_name: sakura-signal-container
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    ports:
+      - "5000:5000" # Example port for signal server
+
+  react_app:
+    build:
+      context: ./sakura-app
+    container_name: sakura-app-container
+    ports:
+      - "3000:3000" # React app exposed on 3000
+    stdin_open: true
+    environment:
+      - NODE_ENV=development

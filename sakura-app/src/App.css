@@ -1,0 +1,24 @@
+.App {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+}
+
+section {
+  margin-bottom: 40px;
+}
+
+button {
+  padding: 10px 20px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+textarea {
+  padding: 10px;
+  font-size: 14px;
+}
+
+video {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
