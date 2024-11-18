@@ -37,3 +37,11 @@ CORS_ORIGIN=*
 REDIS_HOST=redis
 REDIS_PORT=6379
 ```
+
+### 5. Considering you've installed Docker Desktop run:
+
+```bash
+docker-compose up --build
+```
+
+### 6. You all set up!
