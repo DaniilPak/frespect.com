@@ -1,18 +1,20 @@
-# Use the Node.js 18.20.4 base image
+# Use Node.js 18.20.4 base image
 FROM node:18.20.4
 
-# Set working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy package.json and install dependencies
-COPY package.json ./
+# Copy package.json and package-lock.json first for caching
+COPY package.json package-lock.json ./
+
+# Install dependencies
 RUN npm install
 
-# Copy project files
+# Copy the entire project into the container
 COPY . .
 
 # Expose the app's port
 EXPOSE 5000
 
-# Start the app
-CMD ["node", "index.js"]
+# Use npx to run nodemon for live reload
+CMD ["npx", "nodemon", "index.js"]

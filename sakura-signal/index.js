@@ -25,8 +25,8 @@ const io = socketIo(server, {
 
 // Configuration
 const PORT = process.env.PORT || 5000;
-const MEDIA_SERVER_URL =
-  process.env.MEDIA_SERVER_URL || "http://localhost:4000";
+const MEDIA_SERVER_HOST =
+  process.env.MEDIA_SERVER_HOST || "http://localhost:4000";
 const MEDIA_SERVER_API_KEY =
   process.env.MEDIA_SERVER_API_KEY || "your-secret-key";
 
@@ -43,31 +43,6 @@ const verifyMediaServer = (req, res, next) => {
   }
 };
 
-const onGettingSdpOffer = async (data) => {
-  try {
-    // Forward the SDP offer to the media server
-    await axios.post(
-      `${MEDIA_SERVER_URL}/api/mediaserver`,
-      {
-        sdp: data.sdp,
-        clientId: socket.id,
-        roomId: "e7f31a47-3f2d-4bbf-8df4-9c2152f3b2a1"
-        
-      },
-      {
-        headers: {
-          "x-api-key": MEDIA_SERVER_API_KEY, // If required by media server
-        },
-      }
-    );
-
-    // The media server is expected to send back a POST request to our microservice
-  } catch (error) {
-    console.error("Error processing SDP Offer:", error.message);
-    socket.emit("error", { message: "Failed to process SDP Offer" });
-  }
-}
-
 // Socket.IO connection handler
 io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
@@ -76,7 +51,30 @@ io.on("connection", (socket) => {
   console.log(`Registered clientId ${socket.id} with socket ${socket.id}`);
 
   // Handle SDP Offer from client
-  socket.on("sdp-offer", onGettingSdpOffer);
+  socket.on("sdp-offer", async (data) => {
+    try {
+      // Forward the SDP offer to the media server
+      await axios.post(
+        `http://${MEDIA_SERVER_HOST}:4000/api/mediaserver`,
+        {
+          sdp: data.sdp,
+          clientId: socket.id,
+          roomId: "e7f31a47-3f2d-4bbf-8df4-9c2152f3b2a1"
+          
+        },
+        {
+          headers: {
+            "x-api-key": MEDIA_SERVER_API_KEY, // If required by media server
+          },
+        }
+      );
+  
+      // The media server is expected to send back a POST request to our microservice
+    } catch (error) {
+      console.error("Error processing SDP Offer:", error.message);
+      socket.emit("error", { message: "Failed to process SDP Offer" });
+    }
+  });
 
   // Handle disconnection
   socket.on("disconnect", () => {
@@ -91,7 +89,7 @@ io.on("connection", (socket) => {
     // Notify media server about disconnection
     axios
       .post(
-        `${MEDIA_SERVER_URL}/disconnect`,
+        `http://${MEDIA_SERVER_HOST}:4000/disconnect`,
         { clientId: socket.id },
         {
           headers: {

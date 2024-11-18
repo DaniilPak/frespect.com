@@ -151,6 +151,7 @@ const App: React.FC = () => {
 
   return (
     <div>
+      <h1>Header2</h1>
       <textarea
         id="localSessionDescription"
         readOnly // Use `readOnly` in JSX (not `readonly`)
