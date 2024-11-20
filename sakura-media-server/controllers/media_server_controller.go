@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -11,6 +12,38 @@ import (
 
 	"github.com/pion/webrtc/v4"
 )
+
+func BotHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Set the Content-Type header to application/json
+	w.Header().Set("Content-Type", "application/json")
+
+	// Read the request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Error reading request body: %s", err)
+		http.Error(w, "Cannot read request body", http.StatusBadRequest)
+		return
+	}
+
+	// Parse the JSON request body
+	var requestData models.BotRequest
+	if err := json.Unmarshal(body, &requestData); err != nil {
+		log.Printf("Error parsing JSON: %s", err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Managing room
+	songId := requestData.SongId
+	fmt.Printf("Bot request: %s\n", songId)
+
+	go sfu.BotStart()
+}
 
 func MediaServerHandler(w http.ResponseWriter, r *http.Request) {
 	// Ensure the request method is POST
@@ -45,7 +78,7 @@ func MediaServerHandler(w http.ResponseWriter, r *http.Request) {
 	// Create a new participant
 	participant := &models.Participant{
 		ClientID: requestData.ClientID,
-		Tracks:   make(map[string]*webrtc.TrackLocalStaticRTP),
+		Tracks:   make(map[string]webrtc.TrackLocal),
 	}
 
 	// Add participant to the room

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/pion/rtp"
+	"github.com/pion/webrtc/v4"
 )
 
 var (
@@ -13,16 +14,40 @@ var (
 	roomsMutex sync.RWMutex
 )
 
+func AddTrackToAllParticipants(track webrtc.TrackLocal) {
+	roomsMutex.Lock()
+	defer roomsMutex.Unlock()
+
+	for _, room := range rooms {
+		room.Mutex.Lock()
+		for _, participant := range room.Participants {
+			participant.Mutex.Lock()
+			participant.PeerConnection.AddTrack(track)
+			participant.Mutex.Unlock()
+		}
+		room.Mutex.Unlock()
+	}
+
+	PrintRooms()
+}
+
 func Wrtp(rtp *rtp.Packet) {
 	for _, room := range rooms {
 		for _, participant := range room.Participants {
 			for _, track := range participant.Tracks {
-				track.WriteRTP(rtp)
+				// Type assertion to ensure track is TrackLocalStaticRTP
+				if staticTrack, ok := track.(*webrtc.TrackLocalStaticRTP); ok {
+					err := staticTrack.WriteRTP(rtp)
+					if err != nil {
+						fmt.Printf("Failed to write RTP to track %s: %v\n", staticTrack.ID(), err)
+					}
+				} else {
+					fmt.Printf("Track %s is not a TrackLocalStaticRTP\n", track.ID())
+				}
 			}
 		}
 	}
 }
-
 func PrintRooms() {
 	roomsMutex.RLock()
 	defer roomsMutex.RUnlock()

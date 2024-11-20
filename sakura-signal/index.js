@@ -6,6 +6,7 @@ const http = require("http");
 const socketIo = require("socket.io");
 const axios = require("axios");
 const bodyParser = require("body-parser");
+const _ = require("kruza");
 
 const app = express();
 
@@ -139,7 +140,8 @@ app.post("/media-server/answer", verifyMediaServer, (req, res) => {
 
 // Start the server
 server.listen(PORT, () => {
-  console.log(`Socket.IO server running on port ${PORT}`);
+  _.log(`Socket.IO server running on port ${PORT}`);
+  _.log("Server is listening");
 });
 
 // Connect to Redis
@@ -154,6 +156,7 @@ const redisClient = redis.createClient({
 // Connect to Redis
 redisClient.connect().catch((err) => {
   console.error("Redis connection error:", err.message);
+  _.log("Redis");
 });
 
 // Event listener for successful connection

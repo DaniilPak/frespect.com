@@ -3,15 +3,21 @@ package sfu
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/pion/interceptor"
 	"github.com/pion/interceptor/pkg/intervalpli"
 	"github.com/pion/webrtc/v4"
+
+	"github.com/pion/webrtc/v4/pkg/media"
+	"github.com/pion/webrtc/v4/pkg/media/oggreader"
 
 	"sakura/models"
 	"sakura/roommanager"
@@ -110,6 +116,20 @@ func RunReflectServer(sdpRequest models.SDPRequest, room *models.Room, participa
 
 	// Store the track in the participant's Tracks map
 	participant.Tracks[outputTrack.ID()] = outputTrack
+
+	// Start the Bot to add music track
+	go func() {
+		musicTrack := BotStart()
+		if musicTrack != nil {
+			if _, err := peerConnection.AddTrack(musicTrack); err != nil {
+				panic(err)
+			}
+			participant.Tracks[musicTrack.ID()] = musicTrack
+		}
+	}()
+
+	// Wait for music track to be added (simplified with a short delay or a more robust signal mechanism)
+	time.Sleep(2 * time.Second) // Adjust timing as necessary
 
 	// Read incoming RTCP packets
 	// Before these packets are returned they are processed by interceptors. For things
@@ -232,4 +252,62 @@ func RunReflectServer(sdpRequest models.SDPRequest, room *models.Room, participa
 
 	// Block forever
 	select {}
+}
+
+const (
+	audioFileName   = "output.ogg"
+	oggPageDuration = time.Millisecond * 20
+)
+
+func BotStart() *webrtc.TrackLocalStaticSample {
+	// Assert that we have an audio
+	_, err := os.Stat(audioFileName)
+	if os.IsNotExist(err) {
+		fmt.Println("No audio file found.")
+		return nil
+	}
+
+	// Create an audio track for music
+	musicTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio-music", "pion-music")
+	if err != nil {
+		panic(err)
+	}
+
+	go func() {
+		file, err := os.Open(audioFileName)
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+
+		ogg, _, err := oggreader.NewWith(file)
+		if err != nil {
+			panic(err)
+		}
+
+		ticker := time.NewTicker(oggPageDuration)
+		defer ticker.Stop()
+
+		var lastGranule uint64
+		for range ticker.C {
+			pageData, pageHeader, err := ogg.ParseNextPage()
+			if errors.Is(err, io.EOF) {
+				fmt.Println("All audio pages parsed.")
+				break
+			}
+			if err != nil {
+				panic(err)
+			}
+
+			sampleCount := float64(pageHeader.GranulePosition - lastGranule)
+			lastGranule = pageHeader.GranulePosition
+			sampleDuration := time.Duration((sampleCount/48000)*1000) * time.Millisecond
+
+			if writeErr := musicTrack.WriteSample(media.Sample{Data: pageData, Duration: sampleDuration}); writeErr != nil {
+				panic(writeErr)
+			}
+		}
+	}()
+
+	return musicTrack
 }

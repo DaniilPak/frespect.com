@@ -9,6 +9,6 @@ import (
 type Participant struct {
 	ClientID       string
 	PeerConnection *webrtc.PeerConnection
-	Tracks         map[string]*webrtc.TrackLocalStaticRTP
+	Tracks         map[string]webrtc.TrackLocal
 	Mutex          sync.RWMutex
 }

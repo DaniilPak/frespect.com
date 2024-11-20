@@ -65,6 +65,8 @@ const App: React.FC = () => {
     };
 
     rtcpPeerConnection.current.ontrack = function (event) {
+      console.log('New track added:', event.track);
+      
       const videoElement = document.createElement("video");
       videoElement.autoplay = true;
       videoElement.controls = true;
@@ -73,6 +75,7 @@ const App: React.FC = () => {
         remoteVideosRef.current.appendChild(videoElement);
         // Use a method to assign the media stream to the video element
         videoElement.srcObject = event.streams[0];
+        console.log("All tracks: ", event.streams, event.streams.length);
       }
     };
 
