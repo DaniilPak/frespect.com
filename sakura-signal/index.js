@@ -46,10 +46,10 @@ const verifyMediaServer = (req, res, next) => {
 
 // Socket.IO connection handler
 io.on("connection", (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  _.log(`Client connected: ${socket.id}`);
 
   clientSocketMap.set(socket.id, socket);
-  console.log(`Registered clientId ${socket.id} with socket ${socket.id}`);
+  _.log(`Registered clientId ${socket.id} with socket ${socket.id}`);
 
   // Handle SDP Offer from client
   socket.on("sdp-offer", async (data) => {
@@ -79,7 +79,7 @@ io.on("connection", (socket) => {
 
   // Handle disconnection
   socket.on("disconnect", () => {
-    console.log(`Client disconnected: ${socket.id}`);
+    _.log(`Client disconnected: ${socket.id}`);
     // Remove from clientSocketMap
     for (let [key, value] of clientSocketMap.entries()) {
       if (value.id === socket.id) {
@@ -161,7 +161,7 @@ redisClient.connect().catch((err) => {
 
 // Event listener for successful connection
 redisClient.on("connect", () => {
-  console.log("Connected to Redis");
+  _.log("Connected to Redis");
 });
 
 (async () => {

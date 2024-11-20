@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import React, { MutableRefObject, useEffect, useRef, useState } from "react";
+import _ from "kruza";
 import socket from "./services/socket";
 
 const App: React.FC = () => {
@@ -60,12 +61,12 @@ const App: React.FC = () => {
         updateTextAreaValue(localSessionDescription);
 
         socket.emit("sdp-offer", { sdp: localSessionDescription });
-        console.log("Sent SDP offer to server");
+        _.log("Sent SDP offer to server");
       }
     };
 
     rtcpPeerConnection.current.ontrack = function (event) {
-      console.log('New track added:', event.track);
+      _.log('New track added:', event.track);
       
       const videoElement = document.createElement("video");
       videoElement.autoplay = true;
@@ -75,12 +76,12 @@ const App: React.FC = () => {
         remoteVideosRef.current.appendChild(videoElement);
         // Use a method to assign the media stream to the video element
         videoElement.srcObject = event.streams[0];
-        console.log("All tracks: ", event.streams, event.streams.length);
+        _.log("All tracks: ", event.streams, event.streams.length);
       }
     };
 
     socket.on("sdp-answer", async (data) => {
-      console.log("Received SDP answer from server:", data.sdp);
+      _.log("Received SDP answer from server:", data.sdp);
 
       updateRemoteSDP(data.sdp);
       startSession();
