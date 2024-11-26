@@ -10,9 +10,6 @@ COPY package.json package-lock.json ./
 # Install dependencies
 RUN npm install
 
-# Build ts
-RUN npm run build
-
 # Copy the entire project into the container
 COPY . .
 
@@ -20,4 +17,4 @@ COPY . .
 EXPOSE 7000
 
 # Start the application in development mode
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "start"]

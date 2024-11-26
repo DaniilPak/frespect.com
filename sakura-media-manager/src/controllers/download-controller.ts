@@ -1,13 +1,9 @@
 import { Request, Response } from 'express';
-import { DownloadService } from '../services/download-service';
-import { inject, injectable } from 'tsyringe';
-const _ = require('kruza');
+import { DownloadService } from '../services/download.service.js';
+import * as _ from 'kruza';
 
-@injectable()
 export class DownloadController {
-  constructor(
-    @inject('DownloadService') private downloadService: DownloadService
-  ) {
+  constructor(private downloadService: DownloadService) {
     this.downloadService = downloadService;
   }
 

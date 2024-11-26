@@ -1,16 +1,14 @@
 export {};
 
 import { Router } from 'express';
-import { DownloadController } from '../controllers/download-controller';
-import { container } from 'tsyringe';
+import { DownloadController } from '../controllers/download-controller.js';
 
 export class DownloadRoute {
   private readonly router: Router;
-  private readonly downloadController: DownloadController;
 
-  constructor() {
+  constructor(private downloadController: DownloadController) {
     this.router = Router();
-    this.downloadController = container.resolve(DownloadController);
+    this.downloadController = downloadController;
     this.setupRoutes();
   }
 
