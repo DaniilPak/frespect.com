@@ -26,16 +26,35 @@ export class DownloadService {
       // Define the 'tracks_ogg' directory at the same level as 'tracks'
       const tracksOggDir = path.join(parentDir, 'tracks_ogg');
 
+      const sakura_audio_id = nanoid(11);
+
       // Define the input and output file paths
       const inputFilePath = data.pathfile;
-      const outputFileName = `${path.basename(inputFilePath, '.mp3')}.ogg`;
+      const outputFileName = `${sakura_audio_id}.ogg`;
       const outputFilePath = path.join(tracksOggDir, outputFileName);
 
       // Convert the MP3 file to OGG format
       ffmpeg(inputFilePath)
         .toFormat('ogg')
-        .on('end', () => {
+        .on('end', async () => {
           console.log(`Conversion to OGG completed: ${outputFilePath}`);
+
+          // Create a new record in the repository
+          const trackRecord = {
+            sakura_audio_id: sakura_audio_id, // Generate unique ID
+            video_id: 'yt_id', // YouTube video ID
+            title: path.basename(inputFilePath), // Audio title
+            file_path: outputFilePath, // Path to OGG file
+            duration: 0, // Audio duration in seconds
+            downloaded_at: new Date(), // Current timestamp
+          };
+
+          try {
+            await this.downloadedTrackRepository.create(trackRecord);
+            console.log('Track record saved successfully:', trackRecord);
+          } catch (err) {
+            console.error('Error saving track record:', err);
+          }
         })
         .on('error', (err) => {
           console.error('Error during conversion:', err);

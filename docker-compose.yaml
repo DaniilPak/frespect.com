@@ -7,6 +7,14 @@ services:
     ports:
       - "6379:6379"
 
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
   media_manager:
     build:
       context: ./sakura-media-manager
@@ -57,3 +65,6 @@ services:
       - SIGNAL_SERVER_HOST=signal_server # Hostname for Signal Server
     ports:
       - "4000:4000"
+
+volumes:
+  mongo-data:

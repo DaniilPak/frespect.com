@@ -17,6 +17,20 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+import mongoose from 'mongoose';
+const mongoString = process.env.MONGO_DATABASE_URL;
+
+mongoose.connect(mongoString!);
+const database = mongoose.connection;
+
+database.on('error', (error: any) => {
+  console.log(error);
+});
+
+database.once('connected', () => {
+  console.log('Database Connected');
+});
+
 const testRoute = new DownloadRoute(
   new DownloadController(new DownloadService(new DownloadedTrackRepository()))
 );
