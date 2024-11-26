@@ -7,6 +7,32 @@ services:
     ports:
       - "6379:6379"
 
+  scylla:
+    image: scylladb/scylla
+    container_name: scylla
+    ports:
+      - "9042:9042"
+      - "9160:9160"
+      - "10000:10000"
+    volumes:
+      - scylla_data:/var/lib/scylla
+    command: --developer-mode=1
+
+  media_manager:
+    build:
+      context: ./sakura-media-manager
+    container_name: sakura-media-manager-container
+    environment:
+      - PORT=7000
+      - SCYLLA_HOST=scylla
+    depends_on:
+      - scylla
+    volumes:
+      - ./sakura-media-manager:/app # Mount local Node.js code
+    command: npx nodemon dist/index.js # Use nodemon for live reload
+    ports:
+      - "7000:7000" # Example port for signal server
+
   signal_server:
     build:
       context: ./sakura-signal
@@ -33,6 +59,7 @@ services:
     command: npm start # Use React's development server
     environment:
       - NODE_ENV=development
+      - REACT_APP_SOCKET_SERVER_HOST=localhost
     ports:
       - "3000:3000" # React app exposed on 3000
 
@@ -44,3 +71,6 @@ services:
       - SIGNAL_SERVER_HOST=signal_server # Hostname for Signal Server
     ports:
       - "4000:4000"
+
+volumes:
+  scylla_data:

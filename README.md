@@ -6,7 +6,9 @@
 
 ### 2. Setup production mode for ReactJs app
 
-### 3. 
+### 3. Remove nodemon, it is not needed since we dont need live update
+
+### 4. Configure skylla db for production
 
 ## To clone and develop project
 

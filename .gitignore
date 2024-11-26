@@ -3,6 +3,8 @@ sakura-app/node_modules/
 sakura-app/node_modules/.bin/
 sakura-signal/node_modules/
 sakura-signal/node_modules/.bin/
+sakura-media-manager/node_modules/
+sakura-media-manager/node_modules/.bin/
 
 # Logs
 *.log
@@ -14,10 +16,12 @@ yarn-error.log*
 # Build outputs
 sakura-app/build/
 sakura-signal/dist/
+sakura-media-manager/dist/
 
 # Environment variables
 sakura-app/.env
 sakura-signal/.env
+sakura-media-manager/.env
 
 # IDE-specific files
 .vscode/
