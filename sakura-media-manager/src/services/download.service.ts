@@ -15,6 +15,7 @@ export class DownloadService {
     try {
       // Download the audio as an MP3 file
       const data = await Audio({
+        directory: './tracks',
         url,
         onDownloading: (progress) => console.log(progress),
       });
