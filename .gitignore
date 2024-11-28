@@ -6,6 +6,10 @@ sakura-signal/node_modules/.bin/
 sakura-media-manager/node_modules/
 sakura-media-manager/node_modules/.bin/
 
+# Media files
+sakura-media-manager/tracks_ogg/
+sakura-media-manager/tracks/
+
 # Logs
 *.log
 logs/
