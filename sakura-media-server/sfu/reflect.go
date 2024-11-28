@@ -42,6 +42,26 @@ func getServerURL() string {
 	return fmt.Sprintf("http://%s:%s/media-server/answer", signalHost, signalPort)
 }
 
+func getMediaManagerURL() string {
+	// Load environment variables from .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
+
+	signalHost := os.Getenv("MEDIA_MANAGER_HOST")
+	signalPort := os.Getenv("MEDIA_MANAGER_PORT")
+
+	if signalHost == "" && signalPort == "" {
+		log.Fatalf("Environment variables are not set")
+	}
+
+	fmt.Printf("Media manager server %s\n", fmt.Sprintf("http://%s:%s/", signalHost, signalPort))
+
+	// Construct the URL using the environment variables
+	return fmt.Sprintf("http://%s:%s/", signalHost, signalPort)
+}
+
 // Define the URL as a constant
 var serverURL string = getServerURL()
 
@@ -254,16 +274,18 @@ func RunReflectServer(sdpRequest models.SDPRequest, room *models.Room, participa
 	select {}
 }
 
+var mediaManagerURL string = getMediaManagerURL()
+var audioURL = mediaManagerURL + "media/WeO_0duKIhY"
+
 const (
-	audioFileName   = "output.ogg"
 	oggPageDuration = time.Millisecond * 20
 )
 
 func BotStart() *webrtc.TrackLocalStaticSample {
-	// Assert that we have an audio
-	_, err := os.Stat(audioFileName)
-	if os.IsNotExist(err) {
-		fmt.Println("No audio file found.")
+	// Fetch the audio file from HTTP API
+	resp, err := http.Get(audioURL)
+	if err != nil {
+		fmt.Println("Failed to fetch audio file.")
 		return nil
 	}
 
@@ -274,13 +296,7 @@ func BotStart() *webrtc.TrackLocalStaticSample {
 	}
 
 	go func() {
-		file, err := os.Open(audioFileName)
-		if err != nil {
-			panic(err)
-		}
-		defer file.Close()
-
-		ogg, _, err := oggreader.NewWith(file)
+		ogg, _, err := oggreader.NewWith(resp.Body)
 		if err != nil {
 			panic(err)
 		}
@@ -306,6 +322,11 @@ func BotStart() *webrtc.TrackLocalStaticSample {
 			if writeErr := musicTrack.WriteSample(media.Sample{Data: pageData, Duration: sampleDuration}); writeErr != nil {
 				panic(writeErr)
 			}
+		}
+
+		// Close the response body once the audio processing is done
+		if resp.Body != nil {
+			resp.Body.Close()
 		}
 	}()
 

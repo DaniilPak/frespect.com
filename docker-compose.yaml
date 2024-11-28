@@ -66,6 +66,10 @@ services:
     container_name: sakura-go-media-server-container
     environment:
       - SIGNAL_SERVER_HOST=signal_server # Hostname for Signal Server
+      - MEDIA_MANAGER_HOST=media_manager
+      - MEDIA_MANAGER_PORT=7000
+    depends_on:
+      - media_manager
     ports:
       - "4000:4000"
 
