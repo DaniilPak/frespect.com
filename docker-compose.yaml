@@ -21,6 +21,9 @@ services:
     container_name: sakura-media-manager-container
     environment:
       - PORT=7000
+      - MONGO_DATABASE_HOST=mongodb://mongodb:27017 # Full MongoDB connection URI
+    depends_on:
+      - mongodb
     volumes:
       - ./sakura-media-manager:/app # Mount local Node.js code
     command: npx nodemon dist/index.js # Use nodemon for live reload
