@@ -1,7 +1,7 @@
 export {};
 
 import { Router } from 'express';
-import { DownloadController } from '../controllers/download-controller.js';
+import { DownloadController } from '../controllers/download.controller.js';
 
 export class DownloadRoute {
   private readonly router: Router;
