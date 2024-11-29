@@ -1,4 +1,7 @@
 # frespect.com
+
+# to copy
+docker-compose up --build
  
 ## Before Production 
 
