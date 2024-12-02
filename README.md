@@ -43,10 +43,16 @@ REDIS_HOST=redis
 REDIS_PORT=6379
 ```
 
-### 5. Considering you've installed Docker Desktop run:
+### 5. in folder sakura-media-manager create .env and paste:
+```dotenv
+PORT=7000
+MONGO_DATABASE_HOST=mongodb://localhost:27017
+```
+
+### 6. Considering you've installed Docker Desktop run:
 
 ```bash
 docker-compose up --build
 ```
 
-### 6. You all set up!
+### 7. You all set up!
