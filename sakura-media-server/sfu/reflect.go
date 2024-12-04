@@ -24,7 +24,7 @@ import (
 	"sakura/utils"
 )
 
-func getServerURL() string {
+func getServerURL(prefix string) string {
 	// Load environment variables from .env file
 	err := godotenv.Load()
 	if err != nil {
@@ -39,7 +39,7 @@ func getServerURL() string {
 	}
 
 	// Construct the URL using the environment variables
-	return fmt.Sprintf("http://%s:%s/media-server/answer", signalHost, signalPort)
+	return fmt.Sprintf("http://%s:%s/media-server/%s", signalHost, signalPort, prefix)
 }
 
 func getMediaManagerURL() string {
@@ -62,8 +62,13 @@ func getMediaManagerURL() string {
 	return fmt.Sprintf("http://%s:%s/", signalHost, signalPort)
 }
 
+func GetMediaManagerURL() string {
+	return getMediaManagerURL()
+}
+
 // Define the URL as a constant
-var serverURL string = getServerURL()
+var serverURL string = getServerURL("answer")
+var serverURLrenegot string = getServerURL("renegot")
 
 func RunReflectServer(sdpRequest models.SDPRequest, room *models.Room, participant *models.Participant) {
 	// Everything below is the Pion WebRTC API! Thanks for using it ❤️.
@@ -137,20 +142,6 @@ func RunReflectServer(sdpRequest models.SDPRequest, room *models.Room, participa
 	// Store the track in the participant's Tracks map
 	participant.Tracks[outputTrack.ID()] = outputTrack
 
-	// Start the Bot to add music track
-	go func() {
-		musicTrack := BotStart()
-		if musicTrack != nil {
-			if _, err := peerConnection.AddTrack(musicTrack); err != nil {
-				panic(err)
-			}
-			participant.Tracks[musicTrack.ID()] = musicTrack
-		}
-	}()
-
-	// Wait for music track to be added (simplified with a short delay or a more robust signal mechanism)
-	time.Sleep(2 * time.Second) // Adjust timing as necessary
-
 	// Read incoming RTCP packets
 	// Before these packets are returned they are processed by interceptors. For things
 	// like NACK this needs to be called.
@@ -174,7 +165,9 @@ func RunReflectServer(sdpRequest models.SDPRequest, room *models.Room, participa
 	}
 
 	// Update participant's PeerConnection
+	participant.Mutex.Lock() // Locking to avoid race condition
 	participant.PeerConnection = peerConnection
+	participant.Mutex.Unlock()
 
 	roommanager.PrintRooms()
 
@@ -331,4 +324,60 @@ func BotStart() *webrtc.TrackLocalStaticSample {
 	}()
 
 	return musicTrack
+}
+
+func DoRenegotiationAll() {
+	roommanager.RenegotAll(serverURLrenegot)
+}
+
+// Start the Bot to add music track
+func StartMusicEverywhere() {
+	DoRenegotiationAll()
+}
+
+func CreateAudioTrack() *webrtc.TrackLocalStaticSample {
+	// Create an audio track for music
+	musicTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio-music", "pion-music")
+	if err != nil {
+		panic(err)
+	}
+	return musicTrack
+}
+
+func WriteAudioToTrack(audioURL string, musicTrack *webrtc.TrackLocalStaticSample) {
+	// Fetch the audio file from HTTP API
+	resp, err := http.Get(audioURL)
+	if err != nil {
+		fmt.Println("Failed to fetch audio file.")
+		return
+	}
+	defer resp.Body.Close()
+
+	ogg, _, err := oggreader.NewWith(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	ticker := time.NewTicker(oggPageDuration)
+	defer ticker.Stop()
+
+	var lastGranule uint64
+	for range ticker.C {
+		pageData, pageHeader, err := ogg.ParseNextPage()
+		if errors.Is(err, io.EOF) {
+			fmt.Println("All audio pages parsed.")
+			break
+		}
+		if err != nil {
+			panic(err)
+		}
+
+		sampleCount := float64(pageHeader.GranulePosition - lastGranule)
+		lastGranule = pageHeader.GranulePosition
+		sampleDuration := time.Duration((sampleCount/48000)*1000) * time.Millisecond
+
+		if writeErr := musicTrack.WriteSample(media.Sample{Data: pageData, Duration: sampleDuration}); writeErr != nil {
+			panic(writeErr)
+		}
+	}
 }

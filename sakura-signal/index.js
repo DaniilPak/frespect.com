@@ -77,6 +77,38 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Handle SDP Offer from client
+  socket.on("sdp-renegot", async (data) => {
+    _.log("Data: ", data);
+
+    try {
+      // Forward the SDP offer to the media server
+      // Forward the SDP offer to the media server
+      const response = await axios.post(
+        `http://${MEDIA_SERVER_HOST}:4000/api/renegot`,
+        {
+          sdp: data.sdp,
+          clientId: socket.id,
+        },
+        {
+          headers: {
+            "x-api-key": MEDIA_SERVER_API_KEY, // If required by media server
+          },
+        }
+      );
+
+      // Log the response from the media server
+      _.log("Media server response: ", response.data, "emitting to client");
+
+      socket.emit("sdp-renegot-answer", { sdp: response.data.sdp });
+  
+      // The media server is expected to send back a POST request to our microservice
+    } catch (error) {
+      console.error("Error during renegot:", error.message);
+      socket.emit("error", { message: "Failed to renegot" });
+    }
+  });
+
   // Handle disconnection
   socket.on("disconnect", () => {
     _.log(`Client disconnected: ${socket.id}`);
@@ -126,6 +158,34 @@ app.post("/media-server/answer", verifyMediaServer, (req, res) => {
     clientSocket.emit("sdp-answer", { sdp: sdpAnswer });
     console.log(`Sent SDP answer to client ${clientId}`);
     res.status(200).json({ message: "SDP answer sent to client" });
+  } else {
+    console.warn(`Socket not found for clientId ${clientId}`);
+    res.status(404).json({ message: "Client not connected" });
+  }
+});
+
+/**
+ * Route: POST /media-server/answer
+ * Description: Receive SDP answer from media server and send it to the appropriate client
+ * Expected Body: { clientId: string, sdpAnswer: string }
+ */
+app.post("/media-server/renegot", verifyMediaServer, (req, res) => {
+  const { clientId } = req.body;
+
+  _.log("Received from medoa server a renegot request");
+
+  if (!clientId) {
+    return res
+      .status(400)
+      .json({ message: "clientId are required" });
+  }
+
+  const clientSocket = clientSocketMap.get(clientId);
+
+  if (clientSocket) {
+    clientSocket.emit("renegotiation");
+    _.log(`Emitted for renegotiation to client ${clientId}`);
+    res.status(200).json({ message: "SDP offer sent to client" });
   } else {
     console.warn(`Socket not found for clientId ${clientId}`);
     res.status(404).json({ message: "Client not connected" });

@@ -1,7 +1,10 @@
 package roommanager
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"sakura/models"
 	"sync"
 
@@ -14,6 +17,19 @@ var (
 	roomsMutex sync.RWMutex
 )
 
+func FindParticipantByClientID(clientId string) (*models.Participant, *models.Room) {
+	for _, room := range rooms {
+		room.Mutex.RLock()
+		participant, exists := room.Participants[clientId]
+		room.Mutex.RUnlock()
+
+		if exists {
+			return participant, room // Return the participant and the room it's in
+		}
+	}
+	return nil, nil // Participant not found in any room
+}
+
 func AddTrackToAllParticipants(track webrtc.TrackLocal) {
 	roomsMutex.Lock()
 	defer roomsMutex.Unlock()
@@ -23,6 +39,7 @@ func AddTrackToAllParticipants(track webrtc.TrackLocal) {
 		for _, participant := range room.Participants {
 			participant.Mutex.Lock()
 			participant.PeerConnection.AddTrack(track)
+			participant.Tracks[track.ID()] = track
 			participant.Mutex.Unlock()
 		}
 		room.Mutex.Unlock()
@@ -48,6 +65,50 @@ func Wrtp(rtp *rtp.Packet) {
 		}
 	}
 }
+
+func RenegotAll(serverURL string) {
+	for _, room := range rooms {
+		for _, participant := range room.Participants {
+			payload := map[string]string{
+				"clientId": participant.ClientID,
+			}
+
+			// Convert payload to JSON format
+			jsonData, err := json.Marshal(payload)
+			if err != nil {
+				panic(err)
+			}
+
+			// Create a new HTTP POST request
+			req, err := http.NewRequest("POST", serverURL, bytes.NewBuffer(jsonData))
+			if err != nil {
+				fmt.Printf("Failed to create POST request: %v\n", err)
+				return
+			}
+
+			// Set the Content-Type and x-api-key headers
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("x-api-key", "your-secret-key")
+
+			// Send the request
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				fmt.Printf("Failed to send POST request: %v\n", err)
+				return
+			}
+			defer resp.Body.Close()
+
+			// Check response status
+			if resp.StatusCode == http.StatusOK {
+				fmt.Println("Successfully sent answer to server")
+			} else {
+				fmt.Printf("Failed to send answer with status code: %d\n", resp.StatusCode)
+			}
+		}
+	}
+}
+
 func PrintRooms() {
 	roomsMutex.RLock()
 	defer roomsMutex.RUnlock()

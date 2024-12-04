@@ -4,6 +4,7 @@
 import React, { MutableRefObject, useEffect, useRef, useState } from "react";
 import _ from "kruza";
 import socket from "./services/socket";
+import './App.css';
 
 const App: React.FC = () => {
   const rtcpPeerConnection = useRef<RTCPeerConnection | null>(null);
@@ -27,7 +28,6 @@ const App: React.FC = () => {
     const getMedia = async () => {
       try {
         const stream: MediaStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
           audio: true,
         });
 
@@ -87,13 +87,51 @@ const App: React.FC = () => {
       startSession();
     });
 
+    let renegotiating = false;
+
+    socket.on("renegotiation", async () => {
+      if (renegotiating) return;
+      renegotiating = true;
+
+      addLog("Renegotiation requested by server");
+      _.log("Starting renegotiation");
+
+      rtcpPeerConnection.current?.createOffer()
+        .then(offer => {
+          rtcpPeerConnection.current?.setLocalDescription(offer);
+
+          const newOffer = btoa(JSON.stringify(offer));
+          socket.emit("sdp-renegot", { sdp: newOffer });
+          renegotiating = false;
+        })
+        .catch(err => {
+          _.log("Error occured with renegotiation");
+          renegotiating = false;
+        });
+    });
+
+    socket.on("sdp-renegot-answer", async (data) => {
+      _.log("Receieved sdp renegot answer from server", data);
+      addLog("Receieved sdp renegot answer from server");
+
+      updateRemoteSDP(data.sdp);
+      startSession();
+    });
+
+    socket.on("error", async (data) => {
+      addLog(data.message);
+    })
+
     return () => {
       if (rtcpPeerConnection.current) {
         rtcpPeerConnection.current.close();
         rtcpPeerConnection.current = null;
       }
 
+      socket.off("sdp-renegot-answer");
+      socket.off("renegotiation");
       socket.off("sdp-answer");
+      socket.off("error");
     };
   }, []);
 
@@ -154,8 +192,8 @@ const App: React.FC = () => {
   };
 
   return (
-    <div>
-      <h1>Header2</h1>
+    <div style={{ margin: '250px'}}>
+      <h1>Developer mode 3</h1>
       <textarea
         id="localSessionDescription"
         readOnly // Use `readOnly` in JSX (not `readonly`)
