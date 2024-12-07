@@ -1,4 +1,4 @@
-package utils
+package sakura
 
 import (
 	"encoding/base64"
@@ -7,7 +7,6 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-// JSON encode + base64 a SessionDescription
 func Encode(obj *webrtc.SessionDescription) string {
 	b, err := json.Marshal(obj)
 	if err != nil {
@@ -17,7 +16,6 @@ func Encode(obj *webrtc.SessionDescription) string {
 	return base64.StdEncoding.EncodeToString(b)
 }
 
-// Decode a base64 and unmarshal JSON into a SessionDescription
 func Decode(in string, obj *webrtc.SessionDescription) {
 	b, err := base64.StdEncoding.DecodeString(in)
 	if err != nil {

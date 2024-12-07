@@ -1,4 +1,4 @@
-package models
+package sakura
 
 type SDPRequest struct {
 	SDP      string `json:"sdp"`

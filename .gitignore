@@ -3,8 +3,8 @@ sakura-app/node_modules/
 sakura-app/node_modules/.bin/
 sakura-signal/node_modules/
 sakura-signal/node_modules/.bin/
-sakura-media-manager/node_modules/
-sakura-media-manager/node_modules/.bin/
+sakura-api/node_modules/
+sakura-api/node_modules/.bin/
 
 # Media files
 sakura-media-manager/tracks_ogg/

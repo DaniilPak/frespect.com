@@ -18,7 +18,7 @@ const App: React.FC = () => {
     const config: RTCConfiguration = {
       iceServers: [
         {
-          urls: "stun:stun.l.google.com:19302",
+          urls: "stun:global.stun.twilio.com:3478",
         },
       ],
     };
@@ -192,7 +192,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div style={{ margin: '250px'}}>
+    <div style={{ padding: '5%'}}>
       <h1>Developer mode 3</h1>
       <textarea
         id="localSessionDescription"

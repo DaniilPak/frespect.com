@@ -1,6 +1,6 @@
-package models
+package sakura
 
-type SDPRenegot struct {
+type SDPRenegotiateRequest struct {
 	SDP      string `json:"sdp"`
 	ClientID string `json:"clientId"`
 }
