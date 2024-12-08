@@ -108,7 +108,7 @@ func StartSession(sdpRequest SDPRequest, room *Room, participant *Participant) {
 				panic(readErr)
 			}
 
-			roomManager.Wrtp(rtp)
+			roomManager.Wrtp(rtp, room)
 		}
 	})
 

@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sakura/sakura"
+	"sakura"
 
 	"github.com/joho/godotenv"
 )

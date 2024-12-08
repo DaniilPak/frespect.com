@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . .
 
 # Build the Go app
-RUN go build -o main .
+RUN go build -o main ./cmd
 
 # Expose the port for the Go service
 EXPOSE 4000

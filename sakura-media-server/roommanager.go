@@ -28,6 +28,7 @@ type RoomManager struct {
 	rooms            map[string]*Room
 	clientIDToRoomID map[string]string
 	roomsMutex       sync.RWMutex
+	renegotiationSvc *RenegotiationService
 }
 
 // Singleton instance and sync.Once
@@ -39,8 +40,11 @@ var (
 // GetRoomManager returns the singleton instance of RoomManager.
 func GetRoomManager() *RoomManager {
 	once.Do(func() {
+		renegotiationService := &RenegotiationService{}
+
 		roomManagerInstance = &RoomManager{
-			rooms: make(map[string]*Room),
+			rooms:            make(map[string]*Room),
+			renegotiationSvc: renegotiationService,
 		}
 	})
 	return roomManagerInstance
@@ -117,26 +121,24 @@ func (rm *RoomManager) AddTrackToAllParticipants(track webrtc.TrackLocal) {
 }
 
 // Wrtp writes an RTP packet to all tracks of all participants.
-func (rm *RoomManager) Wrtp(rtp *rtp.Packet) {
+func (rm *RoomManager) Wrtp(rtp *rtp.Packet, room *Room) {
 	rm.roomsMutex.RLock()
 	defer rm.roomsMutex.RUnlock()
 
-	for _, room := range rm.rooms {
-		room.Mutex.RLock()
-		for _, participant := range room.Participants {
-			participant.Mutex.RLock()
-			for _, track := range participant.Tracks {
-				if staticTrack, ok := track.(*webrtc.TrackLocalStaticRTP); ok {
-					err := staticTrack.WriteRTP(rtp)
-					if err != nil {
-						fmt.Printf("Failed to write RTP to track %s: %v\n", staticTrack.ID(), err)
-					}
+	room.Mutex.RLock()
+	for _, participant := range room.Participants {
+		participant.Mutex.RLock()
+		for _, track := range participant.Tracks {
+			if staticTrack, ok := track.(*webrtc.TrackLocalStaticRTP); ok {
+				err := staticTrack.WriteRTP(rtp)
+				if err != nil {
+					fmt.Printf("Failed to write RTP to track %s: %v\n", staticTrack.ID(), err)
 				}
 			}
-			participant.Mutex.RUnlock()
 		}
-		room.Mutex.RUnlock()
+		participant.Mutex.RUnlock()
 	}
+	room.Mutex.RUnlock()
 }
 
 // RenegotAll renegotiates connections for all participants.
