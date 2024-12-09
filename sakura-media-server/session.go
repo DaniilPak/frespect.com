@@ -18,7 +18,6 @@ import (
 )
 
 var serverURL string = GetServerURL("answer")
-var serverURLrenegot string = GetServerURL("renegot")
 
 const (
 	oggPageDuration = time.Millisecond * 20
@@ -240,7 +239,7 @@ func BotStart() *webrtc.TrackLocalStaticSample {
 
 func DoRenegotiationAll() {
 	roomManager := GetRoomManager()
-	roomManager.RenegotAll(serverURLrenegot)
+	roomManager.RenegotClientsAround()
 }
 
 func StartMusicEverywhere() {

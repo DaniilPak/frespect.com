@@ -12,7 +12,7 @@ docker-compose up --build
 
 ### 3. Remove nodemon, it is not needed since we dont need live update
 
-### 4. Configure skylla db for production
+### 4. Configure mongodb change from db test to prod or dev
 
 ## To clone and develop project
 
