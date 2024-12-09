@@ -10,20 +10,22 @@ import (
 
 type Room struct {
 	ID           string
-	Participants map[string]*Participant
-	Mutex        sync.RWMutex
+	participants map[string]*Participant
+	// bots         map[string]*Bot
+	mutex sync.RWMutex
 }
 
 type Participant struct {
-	ClientID       string
-	PeerConnection *webrtc.PeerConnection
-	Tracks         map[string]webrtc.TrackLocal
-	Mutex          sync.RWMutex
+	clientID       string
+	peerConnection *webrtc.PeerConnection
+	tracks         map[string]webrtc.TrackLocal
+	rtpSenders     map[string]*webrtc.RTPSender
+	mutex          sync.RWMutex
 }
 
 type RoomManager struct {
 	rooms            map[string]*Room
-	clientIDToRoomID map[string]string
+	clientIDToRoomID sync.Map
 	roomsMutex       sync.RWMutex
 	renegotiationSvc *RenegotiationService
 }
@@ -47,40 +49,69 @@ func GetRoomManager() *RoomManager {
 	return roomManagerInstance
 }
 
-// GetRoomByParticipantID finds the room where the participant with the given clientID is located.
-func (rm *RoomManager) GetRoomByParticipantID(clientID string) *Room {
-	rm.roomsMutex.RLock()
-	defer rm.roomsMutex.RUnlock()
-
-	// Check if the clientID exists in the mapping
-	roomID, exists := rm.clientIDToRoomID[clientID]
-	if !exists {
-		return nil
+// AddTrackToParticipant adds a track to a specific participant identified by clientID.
+func (rm *RoomManager) AddTrackToParticipant(clientID string, botID string, track webrtc.TrackLocal) error {
+	// Find the participant and their room
+	participant, room := rm.FindParticipantByClientID(clientID)
+	if participant == nil || room == nil {
+		return fmt.Errorf("participant with clientID %s not found", clientID)
 	}
 
-	// Retrieve the room using roomID
-	room, roomExists := rm.rooms[roomID]
-	if !roomExists {
-		return nil
+	if participant.tracks == nil {
+		fmt.Println("Participant.tracks is nil!")
 	}
-	return room
+
+	for _, participant := range room.participants {
+		// Lock the participant and add the track
+		participant.mutex.Lock()
+
+		rtpSender, err := participant.peerConnection.AddTrack(track)
+		if err != nil {
+			participant.mutex.Unlock() // Unlock immediately if there was an error
+			return fmt.Errorf("failed to add track to participant: %v", err)
+		}
+
+		participant.rtpSenders[botID] = rtpSender
+		participant.tracks[track.ID()] = track
+
+		participant.mutex.Unlock() // Unlock after processing the participant
+	}
+
+	return nil
 }
 
-// AddParticipantToRoom adds a participant to the room and updates the mapping.
-func (rm *RoomManager) AddParticipantToRoom(roomID, clientID string, participant *Participant) {
-	rm.roomsMutex.Lock()
-	defer rm.roomsMutex.Unlock()
+// RemoveTrackFromRoom removes a track by rtpSender from a specific room using botID.
+func (rm *RoomManager) RemoveTrackFromRoom(room *Room, botID string) error {
+	room.mutex.Lock()
+	defer room.mutex.Unlock()
 
-	// Get or create the room
-	room := rm.GetOrCreateRoom(roomID)
+	// Iterate over participants in the room
+	for _, participant := range room.participants {
+		participant.mutex.Lock()
+		defer participant.mutex.Unlock()
 
-	// Add the participant to the room
-	room.Mutex.Lock()
-	room.Participants[clientID] = participant
-	room.Mutex.Unlock()
+		// Find the rtpSender for the given botID
+		rtpSender, exists := participant.rtpSenders[botID]
+		if !exists {
+			participant.mutex.Unlock()
+			return fmt.Errorf("rtpSender with botID %s not found", botID)
+		}
 
-	// Update the mapping from clientID to roomID
-	rm.clientIDToRoomID[clientID] = roomID
+		// Remove the track from the participant's track list and sender list
+		delete(participant.rtpSenders, botID)
+		delete(participant.tracks, rtpSender.Track().ID())
+
+		participant.peerConnection.RemoveTrack(rtpSender)
+
+		// Close the rtpSender if needed
+		err := rtpSender.Stop()
+		if err != nil {
+			participant.mutex.Unlock()
+			return fmt.Errorf("failed to stop rtpSender for botID %s: %v", botID, err)
+		}
+	}
+
+	return nil
 }
 
 // FindParticipantByClientID locates a participant and its room by client ID.
@@ -89,9 +120,9 @@ func (rm *RoomManager) FindParticipantByClientID(clientID string) (*Participant,
 	defer rm.roomsMutex.RUnlock()
 
 	for _, room := range rm.rooms {
-		room.Mutex.RLock()
-		participant, exists := room.Participants[clientID]
-		room.Mutex.RUnlock()
+		room.mutex.RLock()
+		participant, exists := room.participants[clientID]
+		room.mutex.RUnlock()
 
 		if exists {
 			return participant, room
@@ -106,14 +137,14 @@ func (rm *RoomManager) AddTrackToAllParticipants(track webrtc.TrackLocal) {
 	defer rm.roomsMutex.RUnlock()
 
 	for _, room := range rm.rooms {
-		room.Mutex.Lock()
-		for _, participant := range room.Participants {
-			participant.Mutex.Lock()
-			participant.PeerConnection.AddTrack(track)
-			participant.Tracks[track.ID()] = track
-			participant.Mutex.Unlock()
+		room.mutex.Lock()
+		for _, participant := range room.participants {
+			participant.mutex.Lock()
+			participant.peerConnection.AddTrack(track)
+			participant.tracks[track.ID()] = track
+			participant.mutex.Unlock()
 		}
-		room.Mutex.Unlock()
+		room.mutex.Unlock()
 	}
 }
 
@@ -122,10 +153,10 @@ func (rm *RoomManager) Wrtp(rtp *rtp.Packet, room *Room) {
 	rm.roomsMutex.RLock()
 	defer rm.roomsMutex.RUnlock()
 
-	room.Mutex.RLock()
-	for _, participant := range room.Participants {
-		participant.Mutex.RLock()
-		for _, track := range participant.Tracks {
+	room.mutex.RLock()
+	for _, participant := range room.participants {
+		participant.mutex.RLock()
+		for _, track := range participant.tracks {
 			if staticTrack, ok := track.(*webrtc.TrackLocalStaticRTP); ok {
 				err := staticTrack.WriteRTP(rtp)
 				if err != nil {
@@ -133,12 +164,12 @@ func (rm *RoomManager) Wrtp(rtp *rtp.Packet, room *Room) {
 				}
 			}
 		}
-		participant.Mutex.RUnlock()
+		participant.mutex.RUnlock()
 	}
-	room.Mutex.RUnlock()
+	room.mutex.RUnlock()
 }
 
-func (rm *RoomManager) RenegotClientsAround() {
+func (rm *RoomManager) RenegotiateAllClients() {
 	rm.roomsMutex.RLock()
 	defer rm.roomsMutex.RUnlock()
 
@@ -156,7 +187,7 @@ func (rm *RoomManager) GetOrCreateRoom(roomID string) *Room {
 	if !exists {
 		room = &Room{
 			ID:           roomID,
-			Participants: make(map[string]*Participant),
+			participants: make(map[string]*Participant),
 		}
 		rm.rooms[roomID] = room
 	}
@@ -181,17 +212,14 @@ func (rm *RoomManager) RemoveParticipantFromRoom(roomID, clientID string) {
 		return
 	}
 
-	room.Mutex.Lock()
-	defer room.Mutex.Unlock()
+	room.mutex.Lock()
+	defer room.mutex.Unlock()
 
 	// Remove the participant from the room
-	delete(room.Participants, clientID)
-
-	// Remove the mapping from clientID to roomID
-	delete(rm.clientIDToRoomID, clientID)
+	delete(room.participants, clientID)
 
 	// If the room is empty, delete it
-	if len(room.Participants) == 0 {
+	if len(room.participants) == 0 {
 		delete(rm.rooms, roomID)
 	}
 }

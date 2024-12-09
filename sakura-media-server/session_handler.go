@@ -42,14 +42,17 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create a new participant
 	participant := &Participant{
-		ClientID: requestData.ClientID,
-		Tracks:   make(map[string]webrtc.TrackLocal),
+		clientID:   requestData.ClientID,
+		tracks:     make(map[string]webrtc.TrackLocal),
+		rtpSenders: make(map[string]*webrtc.RTPSender),
 	}
 
+	roomManager.clientIDToRoomID.Store(participant.clientID, roomID)
+
 	// Add participant to the room
-	room.Mutex.Lock()
-	room.Participants[participant.ClientID] = participant
-	room.Mutex.Unlock()
+	room.mutex.Lock()
+	room.participants[participant.clientID] = participant
+	room.mutex.Unlock()
 
 	// Run RunReflectServer in a goroutine
 	go StartSession(requestData, room, participant)

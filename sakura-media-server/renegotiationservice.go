@@ -12,10 +12,10 @@ type RenegotiationService struct{}
 var serverURLrenegot string = GetServerURL("renegot")
 
 func (r *RenegotiationService) RenegotiateParticipants(room *Room) {
-	room.Mutex.RLock()
-	for _, participant := range room.Participants {
+	room.mutex.RLock()
+	for _, participant := range room.participants {
 		payload := map[string]string{
-			"clientId": participant.ClientID,
+			"clientId": participant.clientID,
 		}
 
 		jsonData, err := json.Marshal(payload)
@@ -46,5 +46,5 @@ func (r *RenegotiationService) RenegotiateParticipants(room *Room) {
 			fmt.Printf("Failed to send answer with status code: %d\n", resp.StatusCode)
 		}
 	}
-	room.Mutex.RUnlock()
+	room.mutex.RUnlock()
 }

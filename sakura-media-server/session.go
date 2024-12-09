@@ -3,18 +3,13 @@ package sakura
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
 	"github.com/pion/interceptor"
 	"github.com/pion/interceptor/pkg/intervalpli"
 	"github.com/pion/webrtc/v4"
-
-	"github.com/pion/webrtc/v4/pkg/media"
-	"github.com/pion/webrtc/v4/pkg/media/oggreader"
 )
 
 var serverURL string = GetServerURL("answer")
@@ -74,7 +69,7 @@ func StartSession(sdpRequest SDPRequest, room *Room, participant *Participant) {
 		panic(err)
 	}
 
-	participant.Tracks[outputTrack.ID()] = outputTrack
+	participant.tracks[outputTrack.ID()] = outputTrack
 
 	go func() {
 		rtcpBuf := make([]byte, 1500)
@@ -93,9 +88,9 @@ func StartSession(sdpRequest SDPRequest, room *Room, participant *Participant) {
 		panic(err)
 	}
 
-	participant.Mutex.Lock()
-	participant.PeerConnection = peerConnection
-	participant.Mutex.Unlock()
+	participant.mutex.Lock()
+	participant.peerConnection = peerConnection
+	participant.mutex.Unlock()
 
 	roomManager := GetRoomManager()
 
@@ -115,7 +110,7 @@ func StartSession(sdpRequest SDPRequest, room *Room, participant *Participant) {
 		fmt.Printf("Peer Connection State has changed: %s\n", s.String())
 
 		if s == webrtc.PeerConnectionStateClosed || s == webrtc.PeerConnectionStateFailed {
-			roomManager.RemoveParticipantFromRoom(sdpRequest.RoomID, participant.ClientID)
+			roomManager.RemoveParticipantFromRoom(sdpRequest.RoomID, participant.clientID)
 		}
 	})
 
@@ -183,112 +178,4 @@ func StartSession(sdpRequest SDPRequest, room *Room, participant *Participant) {
 
 	// Block forever
 	select {}
-}
-
-func BotStart() *webrtc.TrackLocalStaticSample {
-	// Fetch the audio file from HTTP API
-	resp, err := http.Get(audioURL)
-	if err != nil {
-		fmt.Println("Failed to fetch audio file.")
-		return nil
-	}
-
-	// Create an audio track for music
-	musicTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio-music", "pion-music")
-	if err != nil {
-		panic(err)
-	}
-
-	go func() {
-		ogg, _, err := oggreader.NewWith(resp.Body)
-		if err != nil {
-			panic(err)
-		}
-
-		ticker := time.NewTicker(oggPageDuration)
-		defer ticker.Stop()
-
-		var lastGranule uint64
-		for range ticker.C {
-			pageData, pageHeader, err := ogg.ParseNextPage()
-			if errors.Is(err, io.EOF) {
-				fmt.Println("All audio pages parsed.")
-				break
-			}
-			if err != nil {
-				panic(err)
-			}
-
-			sampleCount := float64(pageHeader.GranulePosition - lastGranule)
-			lastGranule = pageHeader.GranulePosition
-			sampleDuration := time.Duration((sampleCount/48000)*1000) * time.Millisecond
-
-			if writeErr := musicTrack.WriteSample(media.Sample{Data: pageData, Duration: sampleDuration}); writeErr != nil {
-				panic(writeErr)
-			}
-		}
-
-		// Close the response body once the audio processing is done
-		if resp.Body != nil {
-			resp.Body.Close()
-		}
-	}()
-
-	return musicTrack
-}
-
-func DoRenegotiationAll() {
-	roomManager := GetRoomManager()
-	roomManager.RenegotClientsAround()
-}
-
-func StartMusicEverywhere() {
-	DoRenegotiationAll()
-}
-
-func CreateAudioTrack() *webrtc.TrackLocalStaticSample {
-	// Create an audio track for music
-	musicTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio-music", "pion-music")
-	if err != nil {
-		panic(err)
-	}
-	return musicTrack
-}
-
-func WriteAudioToTrack(audioURL string, musicTrack *webrtc.TrackLocalStaticSample) {
-	// Fetch the audio file from HTTP API
-	resp, err := http.Get(audioURL)
-	if err != nil {
-		fmt.Println("Failed to fetch audio file.")
-		return
-	}
-	defer resp.Body.Close()
-
-	ogg, _, err := oggreader.NewWith(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	ticker := time.NewTicker(oggPageDuration)
-	defer ticker.Stop()
-
-	var lastGranule uint64
-	for range ticker.C {
-		pageData, pageHeader, err := ogg.ParseNextPage()
-		if errors.Is(err, io.EOF) {
-			fmt.Println("All audio pages parsed.")
-			break
-		}
-		if err != nil {
-			panic(err)
-		}
-
-		sampleCount := float64(pageHeader.GranulePosition - lastGranule)
-		lastGranule = pageHeader.GranulePosition
-		sampleDuration := time.Duration((sampleCount/48000)*1000) * time.Millisecond
-
-		if writeErr := musicTrack.WriteSample(media.Sample{Data: pageData, Duration: sampleDuration}); writeErr != nil {
-			panic(writeErr)
-		}
-	}
 }

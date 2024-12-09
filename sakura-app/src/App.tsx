@@ -78,6 +78,20 @@ const App: React.FC = () => {
         videoElement.srcObject = event.streams[0];
         _.log("All tracks: ", event.streams, event.streams.length);
       }
+
+      // Remove video element when the track ends
+      event.track.onended = () => {
+        _.log("Track ended, removing video element");
+        videoElement.remove();
+      };
+
+      // Listen for removetrack events
+      event.streams[0].onremovetrack = (e) => {
+        _.log("Track removed, removing video element");
+        if (e.track === event.track) {
+          videoElement.remove();
+        }
+      };
     };
 
     socket.on("sdp-answer", async (data) => {

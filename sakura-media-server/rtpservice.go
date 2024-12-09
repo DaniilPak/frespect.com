@@ -25,12 +25,12 @@ func GetRTPService() *RTPService {
 }
 
 func (r *RTPService) WriteRTPToParticipants(rtp *rtp.Packet, room *Room) {
-	room.Mutex.RLock()
-	defer room.Mutex.RUnlock()
+	room.mutex.RLock()
+	defer room.mutex.RUnlock()
 
-	for _, participant := range room.Participants {
-		participant.Mutex.RLock()
-		for _, track := range participant.Tracks {
+	for _, participant := range room.participants {
+		participant.mutex.RLock()
+		for _, track := range participant.tracks {
 			if staticTrack, ok := track.(*webrtc.TrackLocalStaticRTP); ok {
 				err := staticTrack.WriteRTP(rtp)
 				if err != nil {
@@ -38,6 +38,6 @@ func (r *RTPService) WriteRTPToParticipants(rtp *rtp.Packet, room *Room) {
 				}
 			}
 		}
-		participant.Mutex.RUnlock()
+		participant.mutex.RUnlock()
 	}
 }

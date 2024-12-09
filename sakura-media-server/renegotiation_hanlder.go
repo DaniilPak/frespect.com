@@ -10,9 +10,6 @@ import (
 	"github.com/pion/webrtc/v4"
 )
 
-var mediaManagerURL string = GetMediaManagerURL()
-var audioURL = mediaManagerURL + "media/ef9DqYNBjUC"
-
 func RenegotHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Print("Renegot hanlder invoked")
 	// Ensure the request method is POST
@@ -55,32 +52,37 @@ func RenegotHandler(w http.ResponseWriter, r *http.Request) {
 	Decode(requestData.SDP, &offer)
 
 	// Set the remote description
-	if err := curParticipant.PeerConnection.SetRemoteDescription(offer); err != nil {
+	if err := curParticipant.peerConnection.SetRemoteDescription(offer); err != nil {
 		panic(err)
 	}
 
-	// Create a music track (audio) to add to the peer connection
-	musicTrack := CreateAudioTrack()
+	// bot, err := NewBot()
+	// if err != nil {
+	// 	panic("Bot failed to create")
+	// }
 
-	// Add the track to the peer connection
-	rtpSender, err := curParticipant.PeerConnection.AddTrack(musicTrack)
-	if err != nil {
-		panic(err)
-	}
+	// // Create a music track (audio) to add to the peer connection
+	// musicTrack := bot.CreateAudioTrack()
 
-	go WriteAudioToTrack(audioURL, musicTrack)
+	// // Add the track to the peer connection
+	// rtpSender, err := curParticipant.PeerConnection.AddTrack(musicTrack)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// go bot.WriteAudioToTrack(audioURL, musicTrack)
 
 	// Wait for ICE gathering to complete
-	gatherComplete := webrtc.GatheringCompletePromise(curParticipant.PeerConnection)
+	gatherComplete := webrtc.GatheringCompletePromise(curParticipant.peerConnection)
 	<-gatherComplete
 
 	// Create an SDP answer and set it as the local description
-	answer, err := curParticipant.PeerConnection.CreateAnswer(nil)
+	answer, err := curParticipant.peerConnection.CreateAnswer(nil)
 	if err != nil {
 		panic(err)
 	}
 
-	if err := curParticipant.PeerConnection.SetLocalDescription(answer); err != nil {
+	if err := curParticipant.peerConnection.SetLocalDescription(answer); err != nil {
 		panic(err)
 	}
 
@@ -89,7 +91,7 @@ func RenegotHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Send the local SDP answer back to the client
 	// Output the answer in base64 so we can paste it in browser
-	encodedAnswer := Encode(curParticipant.PeerConnection.LocalDescription())
+	encodedAnswer := Encode(curParticipant.peerConnection.LocalDescription())
 
 	payload := map[string]string{
 		"sdp": encodedAnswer,
@@ -105,13 +107,13 @@ func RenegotHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	// Handle RTCP packets (optional, depending on your application)
-	go func() {
-		rtcpBuf := make([]byte, 1500)
-		for {
-			if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
-				return
-			}
-		}
-	}()
+	// // Handle RTCP packets (optional, depending on your application)
+	// go func() {
+	// 	rtcpBuf := make([]byte, 1500)
+	// 	for {
+	// 		if _, _, rtcpErr := rtpSender.Read(rtcpBuf); rtcpErr != nil {
+	// 			return
+	// 		}
+	// 	}
+	// }()
 }

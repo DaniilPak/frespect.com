@@ -35,7 +35,25 @@ func BotHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Managing room
 	songId := requestData.SongId
-	fmt.Printf("Bot request: %s\n", songId)
+	clientID := requestData.ClientID
+	fmt.Printf("Bot request: %s %s\n", songId, clientID)
 
-	go StartMusicEverywhere()
+	// Create a music track (audio) to add to the peer connection
+	roomManager := GetRoomManager()
+	_, room := roomManager.FindParticipantByClientID(clientID)
+
+	bot, err := NewBot()
+	if err != nil {
+		panic("Bot failed to create")
+	}
+	bot.SetRoom(room)
+	musicTrack := bot.CreateAudioTrack()
+
+	err2 := roomManager.AddTrackToParticipant(clientID, bot.botID, musicTrack)
+	if err2 != nil {
+		panic(fmt.Sprintf("AddTrack: Failed adding tracks: %v", err))
+	}
+
+	go bot.WriteAudioToTrack(audioURL, musicTrack)
+	roomManager.RenegotiateAllClients()
 }
