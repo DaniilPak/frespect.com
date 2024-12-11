@@ -46,19 +46,19 @@ services:
     ports:
       - "5000:5000" # Example port for signal server
 
-  react_app:
-    build:
-      context: ./sakura-app
-    container_name: sakura-app-container
-    stdin_open: true
-    volumes:
-      - ./sakura-app:/app # Mount local React code
-    command: npm start # Use React's development server
-    environment:
-      - NODE_ENV=development
-      - REACT_APP_SOCKET_SERVER_HOST=localhost
-    ports:
-      - "3000:3000" # React app exposed on 3000
+  # react_app:
+  #   build:
+  #     context: ./sakura-app
+  #   container_name: sakura-app-container
+  #   stdin_open: true
+  #   volumes:
+  #     - ./sakura-app:/app # Mount local React code
+  #   command: npm start # Use React's development server
+  #   environment:
+  #     - NODE_ENV=development
+  #     - REACT_APP_SOCKET_SERVER_HOST=localhost
+  #   ports:
+  #     - "3000:3000" # React app exposed on 3000
 
   go_service:
     build:
