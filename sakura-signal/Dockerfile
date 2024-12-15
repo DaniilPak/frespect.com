@@ -7,8 +7,11 @@ WORKDIR /app
 # Copy package.json and package-lock.json first for caching
 COPY package.json package-lock.json ./
 
+# For Dev
+# RUN npm install
+
 # Install dependencies
-RUN npm install
+RUN npm ci --only=production
 
 # Copy the entire project into the container
 COPY . .
@@ -16,5 +19,8 @@ COPY . .
 # Expose the app's port
 EXPOSE 5000
 
-# Use npx to run nodemon for live reload
-CMD ["npx", "nodemon", "index.js"]
+# For Dev
+# CMD ["npx", "nodemon", "index.js"]
+
+# Start the application
+CMD ["node", "index.js"]
