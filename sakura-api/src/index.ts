@@ -23,27 +23,19 @@ import { MediaController } from './controllers/media.controller.js';
 import { MediaService } from './services/media.service.js';
 const mongoHost = process.env.MONGO_DATABASE_HOST;
 
-async function connectWithRetry() {
-  try {
-    console.log('MS', mongoHost);
+mongoose.connect(mongoHost!).catch((error) => {
+  console.error('MongoDB connection failed:', error);
+});
 
-    mongoose.connect(mongoHost!);
-    const database = mongoose.connection;
+const database = mongoose.connection;
 
-    database.on('error', (error: any) => {
-      console.log(error);
-    });
+database.on('error', (error) => {
+  console.error('Database connection error:', error);
+});
 
-    database.once('connected', () => {
-      console.log('Database Connected');
-    });
-  } catch (err) {
-    console.error('MongoDB connection failed, retrying in 5 seconds...', err);
-    setTimeout(connectWithRetry, 5000); // Retry after 5 seconds
-  }
-}
-
-connectWithRetry();
+database.once('connected', () => {
+  console.log('Database Connected');
+});
 
 const downloadRoute = new DownloadRoute(
   new DownloadController(new DownloadService(new DownloadedTrackRepository()))

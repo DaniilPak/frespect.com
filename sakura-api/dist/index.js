@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 import 'reflect-metadata'; // Required for tsyringe
 import dotenv from 'dotenv';
 dotenv.config(); // Load environment variables
@@ -26,26 +17,16 @@ import { MediaRoute } from './routes/media.route.js';
 import { MediaController } from './controllers/media.controller.js';
 import { MediaService } from './services/media.service.js';
 const mongoHost = process.env.MONGO_DATABASE_HOST;
-function connectWithRetry() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            console.log('MS', mongoHost);
-            mongoose.connect(mongoHost);
-            const database = mongoose.connection;
-            database.on('error', (error) => {
-                console.log(error);
-            });
-            database.once('connected', () => {
-                console.log('Database Connected');
-            });
-        }
-        catch (err) {
-            console.error('MongoDB connection failed, retrying in 5 seconds...', err);
-            setTimeout(connectWithRetry, 5000); // Retry after 5 seconds
-        }
-    });
-}
-connectWithRetry();
+mongoose.connect(mongoHost).catch((error) => {
+    console.error('MongoDB connection failed:', error);
+});
+const database = mongoose.connection;
+database.on('error', (error) => {
+    console.error('Database connection error:', error);
+});
+database.once('connected', () => {
+    console.log('Database Connected');
+});
 const downloadRoute = new DownloadRoute(new DownloadController(new DownloadService(new DownloadedTrackRepository())));
 const mediaRoute = new MediaRoute(new MediaController(new MediaService()));
 app.use('/download', downloadRoute.getRouter());

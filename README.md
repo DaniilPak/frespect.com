@@ -77,6 +77,11 @@ docker-compose up --build
 
 ### 7. Docker images and AWS ECR
 
+## High level overview
+
+Within services of cluster services interconnect via localhost, we use
+container names only when service is outside task definition and service
+
 ## I created 3 repositories on ECR using those commands
 
 ```bash
