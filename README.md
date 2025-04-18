@@ -10,6 +10,17 @@
 
 docker-compose up --build
 
+## To run bot
+
+http://localhost:4000/api/bot
+
+```json
+{
+  "clientId": "V8jR0cZ7Vx9HXHD-AAAD",
+  "songId": "_Fo6n3nl_Sk"
+}
+```
+
 ## To set credentials for AWS
 
 ```bash
