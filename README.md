@@ -1,5 +1,11 @@
 # frespect.com
 
+## to kill process on port
+
+> netstat -ano | findstr :6379
+
+> taskkill /PID 1234 /F
+
 ## to copy
 
 docker-compose up --build

@@ -60,8 +60,7 @@ io.on("connection", (socket) => {
         {
           sdp: data.sdp,
           clientId: socket.id,
-          roomId: "e7f31a47-3f2d-4bbf-8df4-9c2152f3b2a1"
-          
+          roomId: "e7f31a47-3f2d-4bbf-8df4-9c2152f3b2a1",
         },
         {
           headers: {
@@ -69,7 +68,7 @@ io.on("connection", (socket) => {
           },
         }
       );
-  
+
       // The media server is expected to send back a POST request to our microservice
     } catch (error) {
       console.error("Error processing SDP Offer:", error.message);
@@ -101,7 +100,7 @@ io.on("connection", (socket) => {
       _.log("Media server response: ", response.data, "emitting to client");
 
       socket.emit("sdp-renegot-answer", { sdp: response.data.sdp });
-  
+
       // The media server is expected to send back a POST request to our microservice
     } catch (error) {
       console.error("Error during renegot:", error.message);
@@ -175,9 +174,7 @@ app.post("/media-server/renegot", verifyMediaServer, (req, res) => {
   _.log("Received from medoa server a renegot request");
 
   if (!clientId) {
-    return res
-      .status(400)
-      .json({ message: "clientId are required" });
+    return res.status(400).json({ message: "clientId are required" });
   }
 
   const clientSocket = clientSocketMap.get(clientId);
@@ -203,51 +200,3 @@ server.listen(PORT, () => {
   _.log(`Socket.IO server running on port ${PORT}`);
   _.log("Server is listening");
 });
-
-// Connect to Redis
-const redis = require("redis");
-
-// Create a Redis client
-
-const redisClient = redis.createClient({
-  url: `redis://${process.env.REDIS_HOST || "127.0.0.1"}:${process.env.REDIS_PORT || "6379"}`, // Construct URL dynamically
-});
-
-// Connect to Redis
-redisClient.connect().catch((err) => {
-  console.error("Redis connection error:", err.message);
-  _.log("Redis");
-});
-
-// Event listener for successful connection
-redisClient.on("connect", () => {
-  _.log("Connected to Redis");
-});
-
-(async () => {
-  try {
-    // Example map-like object
-    const exampleMap = {
-      key1: "value1",
-      key2: "value2",
-      key3: "value3",
-    };
-
-    const hashKey = "exampleMap";
-
-    // Store the map in Redis as a hash
-    // for (const [field, value] of Object.entries(exampleMap)) {
-    //   await redisClient.hSet(hashKey, field, value);
-    // }
-
-    // Retrieve the map from Redis
-    const retrievedMap = await redisClient.hGetAll(hashKey);
-
-    console.log("Retrieved map from Redis:", retrievedMap);
-  } catch (error) {
-    console.error("Error working with Redis:", error.message);
-  }
-})();
-
-
-
