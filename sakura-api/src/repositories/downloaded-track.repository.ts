@@ -5,7 +5,9 @@ import { DownloadedTrackModel } from '../models/downloaded-track.model.js';
 export class DownloadedTrackRepository implements IRepository<DownloadedTrack> {
   async get(id: string): Promise<DownloadedTrack> {
     try {
-      const track = await DownloadedTrackModel.findOne({ id }).exec();
+      const track = await DownloadedTrackModel.findOne({
+        sakura_audio_id: id,
+      }).exec();
       if (!track) {
         throw new Error(`DownloadedTrack with id ${id} not found`);
       }
@@ -38,7 +40,7 @@ export class DownloadedTrackRepository implements IRepository<DownloadedTrack> {
   async update(id: string, item: DownloadedTrack): Promise<DownloadedTrack> {
     try {
       const updatedTrack = await DownloadedTrackModel.findOneAndUpdate(
-        { id },
+        { sakura_audio_id: id },
         item,
         { new: true }
       ).exec();
@@ -54,7 +56,9 @@ export class DownloadedTrackRepository implements IRepository<DownloadedTrack> {
 
   async delete(id: string): Promise<void> {
     try {
-      const result = await DownloadedTrackModel.deleteOne({ id }).exec();
+      const result = await DownloadedTrackModel.deleteOne({
+        sakura_audio_id: id,
+      }).exec();
       if (result.deletedCount === 0) {
         throw new Error(`DownloadedTrack with id ${id} not found for deletion`);
       }

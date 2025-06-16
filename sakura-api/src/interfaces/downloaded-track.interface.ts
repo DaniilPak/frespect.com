@@ -5,5 +5,5 @@ export interface DownloadedTrack {
   file_path: string;
   duration: number;
   createdAt?: Date; // Timestamp for when the record was created
-  updatedAt?: Date; // Timestamp for when the record was last
+  updatedAt?: Date; // Timestamp for when the record was last updated
 }
